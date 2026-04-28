@@ -1,0 +1,12 @@
+
+t = out.position_error.Time;
+ei = out.position_error.Data;
+
+% Plot ei_norm vs time
+figure;
+plot(t, ei, 'LineWidth', 2);
+
+title('Formation Error Norm vs Time');
+xlabel('Time (s)');
+ylabel('||e_i||');
+grid on;

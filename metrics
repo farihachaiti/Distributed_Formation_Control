@@ -1,0 +1,117 @@
+data = out.position_error;
+data = data(:);   % force vector
+figure;
+
+histogram(data, 'Normalization', 'pdf');
+hold on;
+
+mu = mean(data);
+sigma = std(data);
+
+x = linspace(min(data), max(data), 100);
+y = normpdf(x, mu, sigma);
+
+plot(x, y, 'LineWidth', 2);
+
+title('PDF of Position Error');
+xlabel('Error');
+ylabel('Probability Density');
+legend('Histogram', 'Gaussian Fit');
+grid on;
+
+figure;
+
+cdfplot(data);
+
+title('CDF of Position Error');
+xlabel('Error');
+ylabel('Cumulative Probability');
+grid on;
+
+rmse = sqrt(mean(data.^2));
+
+figure;
+
+bar(rmse);
+
+title('RMSE of Position Error');
+ylabel('RMSE');
+grid on;
+
+mu = mean(data);
+sem = std(data)/sqrt(length(data));
+CI95 = [mu - 1.96*sem, mu + 1.96*sem];
+
+figure;
+
+hold on;
+
+y = 1;
+
+% mean point
+plot(mu, y, 'ro', 'MarkerSize', 8, 'LineWidth', 2);
+
+% confidence interval line
+plot(CI95, [y y], 'b-', 'LineWidth', 3);
+
+xlim([min(data) max(data)]);
+
+title('Mean and 95% Confidence Interval');
+xlabel('Error');
+yticks([]);
+
+legend('Mean', '95% CI');
+grid on;
+
+figure;
+
+boxplot(data);
+
+title('Error Distribution (Boxplot)');
+ylabel('Error');
+grid on;
+
+
+num_trials = 100;
+results = zeros(num_trials,1);
+
+for i = 1:num_trials
+    simOut = sim('distributed_project_triangle');
+    results(i) = simOut.position_error(end);
+end
+figure;
+mean(results)
+std(results)
+histogram(results)
+
+
+% Extract data
+zA = out.z_actual;
+zP = out.z_pred;
+
+zA = squeeze(out.z_actual);
+zP = squeeze(out.z_pred);
+
+[nSamples, nStates] = size(zA);
+
+figure;
+
+for i = 1:nStates
+    subplot(nStates,1,i);
+
+    h1 = plot(zP(:,i), 'LineWidth', 1.5, ...
+        'Color', [0 0.4470 0.7410]); % blue
+
+    hold on;
+
+    h2 = plot(zA(:,i), '--', 'LineWidth', 1.5, ...
+        'Color', [0.8500 0.3250 0.0980]); % red
+
+    title(['Measurement Component z_', num2str(i)]);
+    xlabel('Samples');
+    ylabel('Value');
+
+    legend([h1 h2], {'Predicted','Actual'});
+
+    grid on;
+end
