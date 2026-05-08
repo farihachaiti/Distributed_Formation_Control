@@ -14,8 +14,8 @@ hold on;
 plot(t_fine, vel_interp(:,2), 'LineWidth', 2);
 plot(t_fine, vel_interp(:,3), 'LineWidth', 2);
 
-title('Angu Components vs Time');
+title('Velocity Components vs Time');
 xlabel('Time (s)');
 ylabel('Velocity (m)');
-legend('Wx','Wy','Wz');
+legend('Vx','Vy','Vz');
 grid on;
