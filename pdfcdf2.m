@@ -1,5 +1,5 @@
 % Get signed error
-error_signed = out.position_error;
+error_signed = out.position_error1;
 
 % Compare distributions
 figure;

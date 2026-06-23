@@ -1,6 +1,6 @@
-t = out.position_error.Time;
+t = out.position_error3.Time;
 
-data = out.position_error.Data;
+data = out.position_error3.Data;
 
 datax = data(1,:);
 datay = data(2,:);

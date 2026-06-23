@@ -1,8 +1,8 @@
-data = out.position_error;
+data = out.position_error2;
 
 
-datax = data(1,:);
-datay = data(2,:);
+datax = data(1, :);
+datay = data(2, :);
 figure;
 
 subplot(1,2,1);
@@ -25,13 +25,13 @@ mux = mean(datax);
 sigmax = std(datax);
 
 x = linspace(min(datax), max(datax), 100);
-plot(x, normpdf(x, mux, sigmax), 'LineWidth', 2);
+plot(x, 'LineWidth', 2);
 
 title('PDF of X Error');
 xlabel('Error X');
 ylabel('Probability Density');
 grid on;
-legend('Histogram','Gaussian Fit');
+legend('Histogram');
 
 
 subplot(1,2,2);

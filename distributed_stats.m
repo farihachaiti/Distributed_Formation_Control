@@ -1,4 +1,5 @@
 % Extract time and error data
+
 t  = out.position_error.Time;
 ei = out.position_error.Data;
 
@@ -17,7 +18,7 @@ t = t(:);
 t_fine = linspace(t(1), t(end), 5000);
 ei_interp = interp1(t, ei, t_fine, 'pchip');
 
-threshold = 0.5;
+threshold = 0.3;
 
 % --- convergence condition ---
 if size(ei,2) > 1
@@ -35,9 +36,10 @@ t_conv = t(idx_conv);
 
 % Steady-state segment
 ei_steady = ei(idx_conv:end,:);
-
+whos ei
+whos ei_steady
 % RMSE steady-state
-RMSE_steady = sqrt(mean(ei_steady(:).^2));
+RMSE_steady = sqrt(mean(double(ei_steady).^2));
 
 fprintf('Convergence Time = %.3f s\n', t_conv);
 fprintf('Steady-State RMSE = %.4f m\n', RMSE_steady);
@@ -91,6 +93,42 @@ ylabel('Std Dev (m)');
 grid on;
 
 ei_std = std(ei);
-mean = mean(ei);
-fprintf('Overall Mean = %.4f m\n', mean);
+mun = mean(ei);
+fprintf('Overall Mean = %.4f m\n', mun);
 fprintf('Overall STD = %.4f m\n', ei_std);
+
+% Inputs
+threshold = 0.3;
+T = 1;              % seconds required to stay below threshold
+dt = t(2) - t(1);   % sampling time (assumes uniform sampling)
+
+window = 50;        % movmean window
+
+% Smooth error
+ei_smooth = movmean(ei, window);
+
+% Condition: below threshold
+below = ei_smooth < threshold;
+
+% Convert time requirement into samples
+N = round(T / dt);
+
+% Sliding check: find N consecutive TRUE values
+conv_idx = NaN;
+
+for k = 1:length(below)-N
+    if all(below(k:k+N-1))
+        conv_idx = k;
+        break;
+    end
+end
+
+% Check result
+if isnan(conv_idx)
+    error('System never stayed below threshold for required duration.');
+end
+
+% Convergence time
+t_conv = t(conv_idx);
+
+fprintf('True Convergence Time = %.3f s\n', t_conv);
