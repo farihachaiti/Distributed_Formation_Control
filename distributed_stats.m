@@ -1,134 +1,239 @@
-% Extract time and error data
+%% ==========================================================
+% AVERAGE FORMATION ERROR OF 3 ROBOTS
+%% ==========================================================
+
+%% Extract data
+
+e1 = out.position_error.Data;
+e2 = out.position_error4.Data;
+e3 = out.position_error6.Data;
 
 t  = out.position_error.Time;
-ei = out.position_error.Data;
 
-% reshape safely
-ei = squeeze(ei);
+%% Convert to column vectors
 
-% ensure column vector for scalar signal
-if isrow(ei)
-    ei = ei';
-end
+e1 = squeeze(e1(:));
+e2 = squeeze(e2(:));
+e3 = squeeze(e3(:));
 
-% now dimensions should match
-t = t(:);
+t  = t(:);
 
-% interpolation
-t_fine = linspace(t(1), t(end), 5000);
-ei_interp = interp1(t, ei, t_fine, 'pchip');
+%% Ensure equal lengths
 
-threshold = 0.3;
+N = min([length(e1),length(e2),length(e3)]);
 
-% --- convergence condition ---
-if size(ei,2) > 1
-    idx_conv = find(all(ei < threshold, 2), 1, 'first');
-else
-    idx_conv = find(ei < threshold, 1, 'first');
-end
+e1 = e1(1:N);
+e2 = e2(1:N);
+e3 = e3(1:N);
+t  = t(1:N);
+
+%% ==========================================================
+% Average error
+%% ==========================================================
+
+ei = (e1 + e2 + e3)/3;
+
+%% ==========================================================
+% Convergence analysis
+%% ==========================================================
+
+threshold = 1e-5;
+
+idx_conv = find(ei < threshold,1,'first');
 
 if isempty(idx_conv)
     error('System never converged below threshold.');
 end
 
-% Convergence time
-t_conv = t(idx_conv);
+t_conv_initial = t(idx_conv);
 
-% Steady-state segment
-ei_steady = ei(idx_conv:end,:);
-whos ei
-whos ei_steady
-% RMSE steady-state
-RMSE_steady = sqrt(mean(double(ei_steady).^2));
+%% ==========================================================
+% Steady-state RMSE
+%% ==========================================================
 
-fprintf('Convergence Time = %.3f s\n', t_conv);
-fprintf('Steady-State RMSE = %.4f m\n', RMSE_steady);
+ei_steady = ei(idx_conv:end);
 
-% -------------------------------
-% Plot
-% -------------------------------
-figure;
+RMSE_steady = sqrt(mean(ei_steady.^2));
 
-plot(t, ei, 'b'); hold on;
+fprintf('\n');
+fprintf('Average Formation Error Statistics\n');
+fprintf('----------------------------------\n');
+fprintf('Initial Convergence Time = %.3f s\n',t_conv_initial);
+fprintf('Steady-State RMSE        = %.4f m\n',RMSE_steady);
 
-xline(t_conv, '--r', 'Convergence Time', 'LineWidth', 2);
-yline(threshold, ':k', 'Threshold = 0.9 m', 'LineWidth', 1.5);
+%% ==========================================================
+% Moving mean convergence
+%% ==========================================================
 
-title('Formation Error Norm vs Time');
-xlabel('Time (s)');
-ylabel('||e_i|| (m)');
-grid on;
+window = 50;
 
-legend('Error Norm', 'Convergence Time', 'Threshold');
+mu = movmean(ei,window);
+sigma = movstd(ei,window);
 
+Treq = 1;                   % seconds
+dt = t(2)-t(1);
 
+Nreq = round(Treq/dt);
 
-figure;
-plot(t, ei, 'b'); hold on;
-title('Formation Error Evolution over Time');
-xlabel('Time (s)');
-ylabel('||e_i||');
-grid on;
+below = mu < threshold;
 
-
-
-mu = movmean(ei, 50);
-sigma = movstd(ei, 50);
-
-figure;
-plot(t, ei, 'b'); hold on;
-plot(t, mu, 'r', 'LineWidth', 2);
-plot(t, mu + sigma, '--r');
-plot(t, mu - sigma, '--r');
-
-legend('Error','Mean','+1σ','-1σ');
-title('Error with Uncertainty Band');
-xlabel('Time (s)');
-ylabel('Error (m)');
-grid on;
-
-title('Standard Deviation of Position Error Over Time');
-xlabel('Time (s)');
-ylabel('Std Dev (m)');
-grid on;
-
-ei_std = std(ei);
-mun = mean(ei);
-fprintf('Overall Mean = %.4f m\n', mun);
-fprintf('Overall STD = %.4f m\n', ei_std);
-
-% Inputs
-threshold = 0.3;
-T = 1;              % seconds required to stay below threshold
-dt = t(2) - t(1);   % sampling time (assumes uniform sampling)
-
-window = 50;        % movmean window
-
-% Smooth error
-ei_smooth = movmean(ei, window);
-
-% Condition: below threshold
-below = ei_smooth < threshold;
-
-% Convert time requirement into samples
-N = round(T / dt);
-
-% Sliding check: find N consecutive TRUE values
 conv_idx = NaN;
 
-for k = 1:length(below)-N
-    if all(below(k:k+N-1))
+for k = 1:length(below)-Nreq
+
+    if all(below(k:k+Nreq-1))
+
         conv_idx = k;
         break;
+
     end
+
 end
 
-% Check result
-if isnan(conv_idx)
-    error('System never stayed below threshold for required duration.');
-end
 
-% Convergence time
-t_conv = t(conv_idx);
 
-fprintf('True Convergence Time = %.3f s\n', t_conv);
+
+
+%% ==========================================================
+% Global statistics
+%% ==========================================================
+
+overall_mean = mean(ei);
+
+overall_std = std(ei);
+
+fprintf('Overall Mean Error      = %.4f m\n',overall_mean);
+fprintf('Overall STD             = %.4f m\n',overall_std);
+
+%% ==========================================================
+% Plot 1
+%% ==========================================================
+
+figure;
+
+plot(t,ei,'b','LineWidth',1.5);
+hold on;
+
+xline(t_conv_initial,...
+    '--r',...
+    'Convergence Time',...
+    'LineWidth',2);
+
+yline(threshold,...
+    ':k',...
+    'Threshold',...
+    'LineWidth',1.5);
+
+title('Average Formation Error');
+
+xlabel('Time (s)');
+
+ylabel('Average Error (m)');
+
+legend('Average Error',...
+       'Convergence Time',...
+       'Threshold');
+
+grid on;
+
+%% ==========================================================
+% Plot 2
+%% ==========================================================
+
+figure;
+
+plot(t,e1,'r');
+hold on;
+
+plot(t,e2,'g');
+
+plot(t,e3,'b');
+
+plot(t,ei,...
+    'k',...
+    'LineWidth',2);
+
+title('Robot Formation Errors');
+
+xlabel('Time (s)');
+
+ylabel('Error (m)');
+
+legend('Robot 1',...
+       'Robot 2',...
+       'Robot 3',...
+       'Average');
+
+grid on;
+
+%% ==========================================================
+% Plot 3
+%% ==========================================================
+
+figure;
+
+plot(t,ei,'b');
+
+hold on;
+
+plot(t,mu,...
+    'r',...
+    'LineWidth',2);
+
+plot(t,mu+sigma,'--r');
+
+plot(t,mu-sigma,'--r');
+
+title('Average Error with Uncertainty Band');
+
+xlabel('Time (s)');
+
+ylabel('Error (m)');
+
+legend('Error',...
+       'Mean',...
+       '+1\sigma',...
+       '-1\sigma');
+
+grid on;
+
+%% ==========================================================
+% Plot 4 - Histogram
+%% ==========================================================
+
+figure;
+
+histogram(ei,...
+    'Normalization','pdf');
+
+hold on;
+
+x = linspace(min(ei),max(ei),200);
+
+plot(x,...
+     normpdf(x,mean(ei),std(ei)),...
+     'LineWidth',2);
+
+title('Average Error Distribution');
+
+xlabel('Error (m)');
+
+ylabel('PDF');
+
+legend('Histogram',...
+       'Gaussian Fit');
+
+grid on;
+
+%% ==========================================================
+% 95% Confidence Interval
+%% ==========================================================
+
+sem = std(ei)/sqrt(length(ei));
+
+CI95 = [ ...
+    mean(ei)-1.96*sem ...
+    mean(ei)+1.96*sem ];
+
+fprintf('95%% Confidence Interval = [%.4f , %.4f]\n',...
+        CI95(1),CI95(2));
