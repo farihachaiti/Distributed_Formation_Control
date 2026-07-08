@@ -72,10 +72,15 @@ ei_steady   = ei(idx_conv:end);
 RMSE_steady = sqrt(mean(ei_steady.^2));
 
 fprintf('\n');
+mean_steady = mean(ei_steady);
+std_steady = std(ei_steady);
 fprintf('Average Formation Error Statistics\n');
 fprintf('----------------------------------\n');
 fprintf('Initial Convergence Time = %.3f s\n', t_conv_initial);
 fprintf('Steady-State RMSE        = %.4f m\n', RMSE_steady);
+fprintf('Steady-State Mean        = %.4f m\n', mean_steady);
+fprintf('Steady-State std        = %.4f m\n', std_steady);
+
 
 %% ==========================================================
 % Moving mean convergence
